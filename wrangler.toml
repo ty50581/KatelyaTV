@@ -1,6 +1,6 @@
 name = "katelyatv"
 compatibility_date = "2024-09-01"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat_v2"]
 pages_build_output_dir = ".vercel/output/static"
 
 # 默认 D1 数据库配置（用于命令行操作）
