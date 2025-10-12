@@ -17,7 +17,7 @@ name = "katelyatv"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "katelyatv-db"
-database_id = "6d580637-1f87-4ddf-8b4d-3d97254b4c33"
+database_id = "e1c4619f-e066-4e68-87c6-ef8f142af57d"
 
 # 生产环境变量
 [env.production.vars]
@@ -46,7 +46,7 @@ name = "katelyatv-preview"
 [[env.preview.d1_databases]]
 binding = "DB"
 database_name = "katelyatv-db"
-database_id = "6d580637-1f87-4ddf-8b4d-3d97254b4c33"
+database_id = "e1c4619f-e066-4e68-87c6-ef8f142af57d"
 
 # 预览环境变量
 [env.preview.vars]
