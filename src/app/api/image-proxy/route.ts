@@ -1,73 +1,46 @@
-import { NextResponse } from 'next/server';
-
-import { addCorsHeaders, handleOptionsRequest } from '@/lib/cors';
-
+// src/app/api/image-proxy/route.ts
 export const runtime = 'edge';
 
-// 处理OPTIONS预检请求（OrionTV客户端需要）
-export async function OPTIONS() {
-  return handleOptionsRequest();
-}
+import { NextResponse } from 'next/server';
 
-// OrionTV 兼容接口
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const imageUrl = searchParams.get('url');
+  const url = searchParams.get('url');
 
-  if (!imageUrl) {
-    const response = NextResponse.json({ error: 'Missing image URL' }, { status: 400 });
-    return addCorsHeaders(response);
+  if (!url) {
+    return NextResponse.json({ error: '缺少图片地址' }, { status: 400 });
   }
 
   try {
-    const imageResponse = await fetch(imageUrl, {
+    // 请求源图片
+    const response = await fetch(url, {
       headers: {
-        Referer: 'https://movie.douban.com/',
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       },
     });
 
-    if (!imageResponse.ok) {
-      const response = NextResponse.json(
-        { error: imageResponse.statusText },
-        { status: imageResponse.status }
-      );
-      return addCorsHeaders(response);
+    if (!response.ok) {
+      throw new Error('图片请求失败');
     }
 
-    const contentType = imageResponse.headers.get('content-type');
+    // 获取图片的二进制数据和类型
+    const imageBuffer = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
 
-    if (!imageResponse.body) {
-      const response = NextResponse.json(
-        { error: 'Image response has no body' },
-        { status: 500 }
-      );
-      return addCorsHeaders(response);
-    }
-
-    // 创建响应头
-    const headers = new Headers();
-    if (contentType) {
-      headers.set('Content-Type', contentType);
-    }
-
-    // 设置缓存头（可选）
-    headers.set('Cache-Control', 'public, max-age=15720000, s-maxage=15720000'); // 缓存半年
-    headers.set('CDN-Cache-Control', 'public, s-maxage=15720000');
-    headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=15720000');
-
-    // 直接返回图片流
-    const response = new Response(imageResponse.body, {
-      status: 200,
-      headers,
+    // 返回图片
+    return new NextResponse(imageBuffer, {
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=31536000', // 缓存一年，提高速度
+      },
     });
-    return addCorsHeaders(response);
   } catch (error) {
-    const response = NextResponse.json(
-      { error: 'Error fetching image' },
-      { status: 500 }
-    );
-    return addCorsHeaders(response);
+    console.error('图片代理失败:', error);
+    // 返回一个占位图
+    const placeholder = await fetch('https://via.placeholder.com/300x450/222/fff?text=加载失败').then(r => r.arrayBuffer());
+    return new NextResponse(placeholder, {
+      headers: { 'Content-Type': 'image/png' },
+      status: 500,
+    });
   }
 }
