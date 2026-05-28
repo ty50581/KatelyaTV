@@ -9,139 +9,126 @@ interface DoubanCategoriesParams {
   pageStart?: number;
 }
 
-interface DoubanCategoryApiResponse {
-  total: number;
-  items: Array<{
-    id: string;
-    title: string;
-    card_subtitle: string;
-    pic: {
-      large: string;
-      normal: string;
-    };
-    rating: {
-      value: number;
-    };
-  }>;
+interface TMDBMovieItem {
+  id: number;
+  title: string;
+  poster_path: string | null;
+  vote_average: number;
+  release_date: string;
 }
 
+interface TMDbResponse {
+  results: TMDBMovieItem[];
+  total_pages: number;
+  total_results: number;
+}
+
+// ========== 你的 TMDB API Key 已填入 ==========
+const TMDB_API_KEY = "770b904f20be269d7b7c5d20b78af81c";
+// ==============================================
+
 /**
- * 带超时的 fetch 请求
+ * 带超时请求
  */
 async function fetchWithTimeout(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
-
-  // 检查是否使用代理
-  const proxyUrl = getDoubanProxyUrl();
-  const finalUrl = proxyUrl ? `${proxyUrl}${encodeURIComponent(url)}` : url;
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   const fetchOptions: RequestInit = {
     ...options,
     signal: controller.signal,
     headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      Accept: 'application/json, text/plain, */*',
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/121.0.0 Safari/537.36",
+      Accept: "application/json",
       ...options.headers,
     },
   };
 
   try {
-    const response = await fetch(finalUrl, fetchOptions);
+    const res = await fetch(url, fetchOptions);
     clearTimeout(timeoutId);
-    return response;
-  } catch (error) {
+    return res;
+  } catch (err) {
     clearTimeout(timeoutId);
-    throw error;
+    throw err;
   }
 }
 
-/**
- * 检查是否应该使用客户端获取豆瓣数据
- */
 export function shouldUseDoubanClient(): boolean {
   return getDoubanProxyUrl() !== null;
 }
 
 /**
- * 浏览器端豆瓣分类数据获取函数
+ * 前端拉取 TMDB 影视数据（替代豆瓣）
  */
 export async function fetchDoubanCategories(
   params: DoubanCategoriesParams
 ): Promise<DoubanResult> {
-  const { kind, category, type, pageLimit = 20, pageStart = 0 } = params;
+  const { kind, pageLimit = 20, pageStart = 0 } = params;
+  const page = Math.floor(pageStart / pageLimit) + 1;
 
-  // 验证参数
-  if (!['tv', 'movie'].includes(kind)) {
-    throw new Error('kind 参数必须是 tv 或 movie');
+  let apiUrl = "";
+  const lang = "zh-CN";
+
+  if (kind === "movie") {
+    apiUrl = `https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_API_KEY}&language=${lang}&page=${page}&per_page=${pageLimit}&sort_by=popularity.desc`;
+  } else {
+    apiUrl = `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_API_KEY}&language=${lang}&page=${page}&per_page=${pageLimit}&sort_by=popularity.desc`;
   }
 
-  if (!category || !type) {
-    throw new Error('category 和 type 参数不能为空');
-  }
+  const response = await fetchWithTimeout(apiUrl);
+  if (!response.ok) throw new Error(`请求失败 ${response.status}`);
 
-  if (pageLimit < 1 || pageLimit > 100) {
-    throw new Error('pageLimit 必须在 1-100 之间');
-  }
+  const data: TMDbResponse = await response.json();
 
-  if (pageStart < 0) {
-    throw new Error('pageStart 不能小于 0');
-  }
-
-  const target = `https://m.douban.com/rexxar/api/v2/subject/recent_hot/${kind}?start=${pageStart}&limit=${pageLimit}&category=${category}&type=${type}`;
-
-  try {
-    const response = await fetchWithTimeout(target);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+  const list: DoubanItem[] = data.results.map((item) => {
+    let poster = "";
+    if (item.poster_path) {
+      // TMDB 标准海报地址，无防盗链
+      poster = `https://image.tmdb.org/t/p/w500${item.poster_path}`;
+    } else {
+      // 无海报时用占位图
+      poster = "https://via.placeholder.com/300x450/222/fff?text=暂无海报";
     }
 
-    const doubanData: DoubanCategoryApiResponse = await response.json();
-
-    // 👇 核心修改：放弃豆瓣图片，直接用占位图，彻底解决418
-    const list: DoubanItem[] = doubanData.items.map((item) => ({
-      id: item.id,
-      title: item.title,
-      poster: 'https://via.placeholder.com/300x450/222/fff?text=暂无海报',
-      rate: item.rating?.value ? item.rating.value.toFixed(1) : '',
-      year: item.card_subtitle?.match(/(\d{4})/)?.[1] || '',
-    }));
+    let year = "";
+    if (item.release_date) {
+      year = item.release_date.split("-")[0];
+    }
 
     return {
-      code: 200,
-      message: '获取成功',
-      list: list,
+      id: String(item.id),
+      title: item.title,
+      poster,
+      rate: item.vote_average > 0 ? item.vote_average.toFixed(1) : "",
+      year,
     };
-  } catch (error) {
-    throw new Error(`获取豆瓣分类数据失败: ${(error as Error).message}`);
-  }
+  });
+
+  return {
+    code: 200,
+    message: "获取成功",
+    list,
+  };
 }
 
 /**
- * 统一的豆瓣分类数据获取函数，根据代理设置选择使用服务端 API 或客户端代理获取
+ * 统一入口
  */
 export async function getDoubanCategories(
   params: DoubanCategoriesParams
 ): Promise<DoubanResult> {
   if (shouldUseDoubanClient()) {
-    // 使用客户端代理获取（当设置了代理 URL 时）
     return fetchDoubanCategories(params);
   } else {
-    // 使用服务端 API（当没有设置代理 URL 时）
     const { kind, category, type, pageLimit = 20, pageStart = 0 } = params;
-    const response = await fetch(
+    const res = await fetch(
       `/api/douban/categories?kind=${kind}&category=${category}&type=${type}&limit=${pageLimit}&start=${pageStart}`
     );
-
-    if (!response.ok) {
-      throw new Error('获取豆瓣分类数据失败');
-    }
-
-    return response.json();
+    if (!res.ok) throw new Error("数据获取失败");
+    return res.json();
   }
 }
