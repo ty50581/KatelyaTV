@@ -67,7 +67,8 @@ export async function fetchDoubanCategories(
     mediaType = "tv";
   }
 
-  const apiUrl = `https://api.themoviedb.org/3/discover/\( {mediaType}?api_key= \){TMDB_API_KEY}&language=zh-CN&page=${page}&sort_by=popularity.desc`;
+  // 修复后的完整 apiUrl 地址
+  const apiUrl = `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${TMDB_API_KEY}&language=zh-CN&page=${page}&sort_by=popularity.desc`;
 
   const response = await fetchWithTimeout(apiUrl);
   if (!response.ok) {
