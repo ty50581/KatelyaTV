@@ -25,7 +25,7 @@ interface TMDbResponse {
   total_results: number;
 }
 
-// TMDB API Key（已使用，不会报 unused）
+// TMDB API Key
 const TMDB_API_KEY = "770b904f20be269d7b7c5d20b78af81c";
 
 // 带超时请求
@@ -54,7 +54,7 @@ export function shouldUseDoubanClient(): boolean {
 }
 
 /**
- * TMDB 替代豆瓣数据源
+ * TMDB 替代豆瓣
  */
 export async function fetchDoubanCategories(
   params: DoubanCategoriesParams
@@ -62,7 +62,12 @@ export async function fetchDoubanCategories(
   const { kind, pageLimit = 20, pageStart = 0 } = params;
   const page = Math.floor(pageStart / pageLimit) + 1;
 
-  const apiUrl = `https://api.themoviedb.org/3/discover/\( {kind === "movie" ? "movie" : "tv"}?api_key= \){TMDB_API_KEY}&language=zh-CN&page=${page}&sort_by=popularity.desc`;
+  let mediaType = "movie";
+  if (kind === "tv") {
+    mediaType = "tv";
+  }
+
+  const apiUrl = `https://api.themoviedb.org/3/discover/\( {mediaType}?api_key= \){TMDB_API_KEY}&language=zh-CN&page=${page}&sort_by=popularity.desc`;
 
   const response = await fetchWithTimeout(apiUrl);
   if (!response.ok) {
