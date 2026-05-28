@@ -67,7 +67,6 @@ export async function fetchDoubanCategories(
     mediaType = "tv";
   }
 
-  // 修复后的完整 apiUrl 地址
   const apiUrl = `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${TMDB_API_KEY}&language=zh-CN&page=${page}&sort_by=popularity.desc`;
 
   const response = await fetchWithTimeout(apiUrl);
@@ -77,6 +76,7 @@ export async function fetchDoubanCategories(
 
   const data: TMDbResponse = await response.json();
 
+  // ✅ 修复类型不匹配问题：严格按照 DoubanItem 结构返回
   const list: DoubanItem[] = data.results.map((item) => {
     const title = item.title || item.name || "未知标题";
     const year = (item.release_date || item.first_air_date || "").slice(0, 4);
