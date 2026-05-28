@@ -67,8 +67,7 @@ export async function fetchDoubanCategories(
     mediaType = "tv";
   }
 
-  // 修复：正确拼接 TMDB 接口地址，删除非法转义符
-  const apiUrl = `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${TMDB_API_KEY}&language=zh-CN&page=${page}&sort_by=popularity.desc`;
+  const apiUrl = `https://api.themoviedb.org/3/discover/\( {mediaType}?api_key= \){TMDB_API_KEY}&language=zh-CN&page=${page}&sort_by=popularity.desc`;
 
   const response = await fetchWithTimeout(apiUrl);
   if (!response.ok) {
