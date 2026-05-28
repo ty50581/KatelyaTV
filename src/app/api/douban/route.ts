@@ -5,6 +5,11 @@ import { NextResponse } from 'next/server';
 const TMDB_API_KEY = "770b904f20be269d7b7c5d20b78af81c";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
 
+// 用项目自带的图片代理，格式：/api/image-proxy?url=xxx
+const getProxiedImageUrl = (url: string) => {
+  return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+};
+
 interface TMDBItem {
   id: number;
   title?: string;
@@ -42,9 +47,12 @@ export async function GET(request: Request) {
     const list = data.results.map((item) => {
       const title = item.title || item.name || "未知标题";
       const year = (item.release_date || item.first_air_date || "").slice(0, 4);
-      const posterPath = item.poster_path
+      const rawPoster = item.poster_path
         ? `${TMDB_IMAGE_BASE}/w500${item.poster_path}`
         : "https://via.placeholder.com/300x450/222/fff?text=暂无海报";
+
+      // ✅ 关键：海报地址走项目代理，解决被墙问题
+      const posterPath = getProxiedImageUrl(rawPoster);
 
       return {
         id: String(item.id),
