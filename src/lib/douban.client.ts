@@ -1,14 +1,16 @@
 import { DoubanItem, DoubanResult } from './types';
-import { getDoubanProxyUrl } from './utils';
 
 export function shouldUseDoubanClient(): boolean {
   return true;
 }
 
+// 兼容页面传来的 category / type 字段
 interface Params {
   kind: 'tv' | 'movie';
   pageLimit?: number;
   pageStart?: number;
+  category?: string;
+  type?: string;
 }
 
 export async function fetchDoubanCategories(
