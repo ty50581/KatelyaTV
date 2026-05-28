@@ -54,7 +54,7 @@ export function shouldUseDoubanClient(): boolean {
 }
 
 /**
- * 从 TMDB 获取电影/电视剧数据
+ * 从 TMDB 获取数据（替代豆瓣）
  */
 export async function fetchDoubanCategories(
   params: DoubanCategoriesParams
@@ -99,7 +99,7 @@ export async function fetchDoubanCategories(
 }
 
 /**
- * 统一入口（优先走 TMDB）
+ * 统一入口
  */
 export async function getDoubanCategories(
   params: DoubanCategoriesParams
