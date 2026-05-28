@@ -45,8 +45,6 @@ async function fetchWithTimeout(
     headers: {
       'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      // 👇 关键修改：移除强制 Referer，让浏览器自己控制
-      // Referer: 'https://movie.douban.com/',
       Accept: 'application/json, text/plain, */*',
       ...options.headers,
     },
@@ -105,21 +103,14 @@ export async function fetchDoubanCategories(
 
     const doubanData: DoubanCategoryApiResponse = await response.json();
 
-    // 👇 关键修改：修改图片地址格式，绕过防盗链
-    const list: DoubanItem[] = doubanData.items.map((item) => {
-      let poster = item.pic?.normal || item.pic?.large || '';
-      if (poster) {
-        // 给域名加个点，绕过防盗链
-        poster = poster.replace('img9.doubanio.com', 'img9.doubanio.com.');
-      }
-      return {
-        id: item.id,
-        title: item.title,
-        poster,
-        rate: item.rating?.value ? item.rating.value.toFixed(1) : '',
-        year: item.card_subtitle?.match(/(\d{4})/)?.[1] || '',
-      };
-    });
+    // 👇 核心修改：放弃豆瓣图片，直接用占位图，彻底解决418
+    const list: DoubanItem[] = doubanData.items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      poster: 'https://via.placeholder.com/300x450/222/fff?text=暂无海报',
+      rate: item.rating?.value ? item.rating.value.toFixed(1) : '',
+      year: item.card_subtitle?.match(/(\d{4})/)?.[1] || '',
+    }));
 
     return {
       code: 200,
