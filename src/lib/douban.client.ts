@@ -1,6 +1,3 @@
-import { DoubanItem, DoubanResult } from './types';
-import { getDoubanProxyUrl } from './utils';
-
 export function shouldUseDoubanClient(): boolean {
   return true;
 }
