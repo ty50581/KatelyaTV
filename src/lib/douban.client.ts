@@ -27,6 +27,7 @@ interface TMDbResponse {
 
 // TMDB API Key
 const TMDB_API_KEY = "770b904f20be269d7b7c5d20b78af81c";
+const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
 
 // 带超时请求
 async function fetchWithTimeout(url: string): Promise<Response> {
@@ -67,7 +68,8 @@ export async function fetchDoubanCategories(
     mediaType = "tv";
   }
 
-  const apiUrl = `https://api.themoviedb.org/3/discover/\( {mediaType}?api_key= \){TMDB_API_KEY}&language=zh-CN&page=${page}&sort_by=popularity.desc`;
+  // ========== 重点修复：删除多余转义 + 修正模板字符串 ==========
+  const apiUrl = `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${TMDB_API_KEY}&language=zh-CN&page=${page}&sort_by=popularity.desc`;
 
   const response = await fetchWithTimeout(apiUrl);
   if (!response.ok) {
@@ -79,17 +81,23 @@ export async function fetchDoubanCategories(
   const list: DoubanItem[] = data.results.map((item) => {
     const title = item.title || item.name || "未知标题";
     const year = (item.release_date || item.first_air_date || "").slice(0, 4);
-    const posterPath = item.poster_path
-      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-      : "https://via.placeholder.com/300x450/222/fff?text=暂无海报";
+    
+    let posterLarge = `${TMDB_IMAGE_BASE}/w500${item.poster_path}`;
+    let posterNormal = `${TMDB_IMAGE_BASE}/w300${item.poster_path}`;
+
+    if (!item.poster_path) {
+      const placeholder = "https://via.placeholder.com/300x450/222/fff?text=暂无海报";
+      posterLarge = placeholder;
+      posterNormal = placeholder;
+    }
 
     return {
       id: String(item.id),
       title,
       card_subtitle: year,
       pic: {
-        large: posterPath,
-        normal: posterPath.replace("/w500", "/w300"),
+        large: posterLarge,
+        normal: posterNormal,
       },
       rating: { value: Math.round(item.vote_average * 10) / 10 },
     } as DoubanItem;
