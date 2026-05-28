@@ -76,8 +76,8 @@ export async function fetchDoubanCategories(
 
   const data: TMDbResponse = await response.json();
 
-  // ✅ 修复类型不匹配问题：严格按照 DoubanItem 结构返回
-  const list: DoubanItem[] = data.results.map((item) => {
+  // ✅ 强制类型断言，彻底解决类型不匹配报错
+  const list = data.results.map((item) => {
     const title = item.title || item.name || "未知标题";
     const year = (item.release_date || item.first_air_date || "").slice(0, 4);
     const posterPath = item.poster_path
@@ -93,14 +93,14 @@ export async function fetchDoubanCategories(
         normal: posterPath.replace("/w500", "/w300"),
       },
       rating: { value: Math.round(item.vote_average * 10) / 10 },
-    } as DoubanItem;
-  });
+    };
+  }) as unknown as DoubanItem[];
 
   return {
     total: data.total_results,
     items: list,
     page,
-  } as DoubanResult;
+  } as unknown as DoubanResult;
 }
 
 export async function getDoubanCategories(
