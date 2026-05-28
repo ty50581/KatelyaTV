@@ -25,10 +25,10 @@ interface TMDbResponse {
   total_results: number;
 }
 
-// ========== TMDB API Key ==========
+// TMDB API Key（已使用，不会报 unused）
 const TMDB_API_KEY = "770b904f20be269d7b7c5d20b78af81c";
-// =================================
 
+// 带超时请求
 async function fetchWithTimeout(url: string): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -54,7 +54,7 @@ export function shouldUseDoubanClient(): boolean {
 }
 
 /**
- * 从 TMDB 获取数据（替代豆瓣）
+ * TMDB 替代豆瓣数据源
  */
 export async function fetchDoubanCategories(
   params: DoubanCategoriesParams
@@ -62,8 +62,7 @@ export async function fetchDoubanCategories(
   const { kind, pageLimit = 20, pageStart = 0 } = params;
   const page = Math.floor(pageStart / pageLimit) + 1;
 
-  const apiUrl = `https://api.themoviedb.org/3/discover/${kind === "movie" ? "movie" : "tv"}?` +
-    `api_key=\( {TMDB_API_KEY}&language=zh-CN&page= \){page}&sort_by=popularity.desc`;
+  const apiUrl = `https://api.themoviedb.org/3/discover/\( {kind === "movie" ? "movie" : "tv"}?api_key= \){TMDB_API_KEY}&language=zh-CN&page=${page}&sort_by=popularity.desc`;
 
   const response = await fetchWithTimeout(apiUrl);
   if (!response.ok) {
@@ -98,9 +97,6 @@ export async function fetchDoubanCategories(
   } as DoubanResult;
 }
 
-/**
- * 统一入口
- */
 export async function getDoubanCategories(
   params: DoubanCategoriesParams
 ): Promise<DoubanResult> {
