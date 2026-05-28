@@ -11,8 +11,8 @@ interface DoubanCategoriesParams {
 
 interface TMDBItem {
   id: number;
-  title?: string;           // 电影
-  name?: string;            // 电视剧
+  title?: string;
+  name?: string;
   poster_path: string | null;
   vote_average: number;
   release_date?: string;
@@ -25,13 +25,10 @@ interface TMDbResponse {
   total_results: number;
 }
 
-// ========== 你的 TMDB API Key ==========
+// ========== TMDB API Key ==========
 const TMDB_API_KEY = "770b904f20be269d7b7c5d20b78af81c";
-// ======================================
+// =================================
 
-/**
- * 带超时请求
- */
 async function fetchWithTimeout(url: string): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -57,7 +54,7 @@ export function shouldUseDoubanClient(): boolean {
 }
 
 /**
- * TMDB 数据获取（替代豆瓣）
+ * 从 TMDB 获取电影/电视剧数据
  */
 export async function fetchDoubanCategories(
   params: DoubanCategoriesParams
@@ -65,46 +62,47 @@ export async function fetchDoubanCategories(
   const { kind, pageLimit = 20, pageStart = 0 } = params;
   const page = Math.floor(pageStart / pageLimit) + 1;
 
-  const apiUrl = `https://api.themoviedb.org/3/discover/${kind === 'movie' ? 'movie' : 'tv'}?` +
+  const apiUrl = `https://api.themoviedb.org/3/discover/${kind === "movie" ? "movie" : "tv"}?` +
     `api_key=\( {TMDB_API_KEY}&language=zh-CN&page= \){page}&sort_by=popularity.desc`;
 
   const response = await fetchWithTimeout(apiUrl);
-  if (!response.ok) throw new Error(`TMDB 请求失败 ${response.status}`);
+  if (!response.ok) {
+    throw new Error(`TMDB 请求失败: ${response.status}`);
+  }
 
   const data: TMDbResponse = await response.json();
 
   const list: DoubanItem[] = data.results.map((item) => {
-    const title = item.title || item.name || "未知";
+    const title = item.title || item.name || "未知标题";
     const year = (item.release_date || item.first_air_date || "").slice(0, 4);
-    const posterPath = item.poster_path 
-      ? `https://image.tmdb.org/t/p/w500${item.poster_path}` 
+    const posterPath = item.poster_path
+      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
       : "https://via.placeholder.com/300x450/222/fff?text=暂无海报";
 
     return {
       id: String(item.id),
-      title: title,
+      title,
       card_subtitle: year,
       pic: {
         large: posterPath,
-        normal: posterPath.replace('w500', 'w300'),
+        normal: posterPath.replace("/w500", "/w300"),
       },
-      rating: { value: item.vote_average || 0 }
+      rating: { value: Math.round(item.vote_average * 10) / 10 },
     } as DoubanItem;
   });
 
   return {
     total: data.total_results,
     items: list,
-    page: page
+    page,
   } as DoubanResult;
 }
 
 /**
- * 统一入口
+ * 统一入口（优先走 TMDB）
  */
 export async function getDoubanCategories(
   params: DoubanCategoriesParams
 ): Promise<DoubanResult> {
-  // 优先使用 TMDB
   return fetchDoubanCategories(params);
 }
