@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { NextResponse } from 'next/server';
 
 const TMDB_API_KEY = "770b904f20be269d7b7c5d20b78af81c";
@@ -22,7 +24,6 @@ export async function GET(request: Request) {
     if (!res.ok) throw new Error("TMDB 请求失败");
     const data = await res.json();
 
-    // 格式化数据，适配前端
     const list = data.results.map((item: any) => {
       const title = item.title || item.name || "未知标题";
       const year = (item.release_date || item.first_air_date || "").slice(0, 4);
