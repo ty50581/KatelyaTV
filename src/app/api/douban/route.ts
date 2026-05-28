@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 const TMDB_API_KEY = "770b904f20be269d7b7c5d20b78af81c";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
 
-// 用项目自带的图片代理，格式：/api/image-proxy?url=xxx
+// ✅ 只对 url 参数编码，保留 ? 和 /
 const getProxiedImageUrl = (url: string) => {
   return `/api/image-proxy?url=${encodeURIComponent(url)}`;
 };
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
         ? `${TMDB_IMAGE_BASE}/w500${item.poster_path}`
         : "https://via.placeholder.com/300x450/222/fff?text=暂无海报";
 
-      // ✅ 关键：海报地址走项目代理，解决被墙问题
+      // ✅ 调用代理函数，生成正确的地址
       const posterPath = getProxiedImageUrl(rawPoster);
 
       return {
